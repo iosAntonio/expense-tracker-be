@@ -1,17 +1,21 @@
-
 package org.example.service;
 
 import org.example.dto.ExpenseRequestDTO;
 import org.example.dto.ExpenseResponseDTO;
 import org.example.dto.ExpenseImportResponseDTO;
+import org.example.dto.ImportBatchDTO;
+import org.example.dto.MonthDeletionResponseDTO;
 import org.example.entity.Expense;
+import org.example.entity.ImportBatch;
 import org.example.repository.ExpenseRepository;
 
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.YearMonth;
 import java.util.List;
 import java.util.Set;
 import java.util.HashSet;
@@ -21,9 +25,14 @@ import java.util.stream.Collectors;
 public class ExpenseService {
 
     private final ExpenseRepository expenseRepository;
+    private final ImportBatchService importBatchService;
 
-    public ExpenseService(ExpenseRepository expenseRepository) {
+    public ExpenseService(
+            ExpenseRepository expenseRepository,
+            ImportBatchService importBatchService) {
+
         this.expenseRepository = expenseRepository;
+        this.importBatchService = importBatchService;
     }
 
     @Transactional
@@ -38,6 +47,7 @@ public class ExpenseService {
 
     @Transactional
     public ExpenseImportResponseDTO importExpenses(
+            String fileName,
             List<ExpenseRequestDTO> requests) {
 
         Set<String> externalIds = new HashSet<>();
@@ -71,32 +81,97 @@ public class ExpenseService {
                 .map(Expense::getExternalId)
                 .collect(Collectors.toSet());
 
-        List<Expense> newExpenses = requests.stream()
+        List<ExpenseRequestDTO> newRequests = requests.stream()
                 .filter(request -> !existingIds.contains(request.getExternalId()))
-                .map(this::convertToEntity)
                 .toList();
 
-        List<Expense> savedExpenses = expenseRepository.saveAll(newExpenses);
+        List<String> skippedExternalIds = ids.stream()
+                .filter(existingIds::contains)
+                .toList();
+
+        List<Expense> savedExpenses = List.of();
+        ImportBatchDTO batch = null;
+
+        if (!newRequests.isEmpty()) {
+            ImportBatch importBatch = importBatchService.register(
+                    fileName,
+                    requests,
+                    newRequests.size(),
+                    skippedExternalIds.size()
+            );
+
+            List<Expense> newExpenses = newRequests.stream()
+                    .map(this::convertToEntity)
+                    .toList();
+            newExpenses.forEach(expense -> expense.setImportBatchId(importBatch.getId()));
+
+            savedExpenses = expenseRepository.saveAll(newExpenses);
+            batch = importBatchService.convertToDTO(importBatch);
+        }
 
         List<ExpenseResponseDTO> importedExpenses = savedExpenses.stream()
                 .map(this::convertToResponseDTO)
                 .toList();
 
-        return new ExpenseImportResponseDTO(
+        ExpenseImportResponseDTO response = new ExpenseImportResponseDTO(
                 requests.size(),
                 savedExpenses.size(),
                 existingIds.size(),
                 importedExpenses
         );
+        response.setSkippedExternalIds(skippedExternalIds);
+        response.setBatch(batch);
+
+        return response;
     }
 
     @Transactional(readOnly = true)
     public List<ExpenseResponseDTO> getAllExpenses() {
 
-        return expenseRepository.findAll()
+        return expenseRepository.findAll(Sort.by(Sort.Direction.DESC, "date", "id"))
                 .stream()
                 .map(this::convertToResponseDTO)
                 .toList();
+    }
+
+    @Transactional
+    public ExpenseResponseDTO updateExpense(Long id, ExpenseRequestDTO request) {
+
+        Expense expense = findExpense(id);
+
+        expense.setDate(request.getDate());
+        expense.setDescription(request.getDescription());
+        expense.setAmount(request.getAmount());
+        expense.setCategory(request.getCategory());
+        expense.setPaymentMethod(request.getPaymentMethod());
+
+        return convertToResponseDTO(expense);
+    }
+
+    @Transactional
+    public void deleteExpense(Long id) {
+
+        expenseRepository.delete(findExpense(id));
+    }
+
+    @Transactional
+    public MonthDeletionResponseDTO deleteMonth(YearMonth month) {
+
+        int deletedCount = expenseRepository.deleteAllInPeriod(
+                month.atDay(1),
+                month.atEndOfMonth()
+        );
+
+        return new MonthDeletionResponseDTO(month.toString(), deletedCount);
+    }
+
+    private Expense findExpense(Long id) {
+
+        return expenseRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Spesa non trovata."
+                ));
     }
 
     private ExpenseResponseDTO convertToResponseDTO(Expense expense) {

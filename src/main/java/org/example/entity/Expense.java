@@ -32,6 +32,9 @@ public class Expense {
 
     private String paymentMethod;
 
+    @Column(name = "import_batch_id")
+    private Long importBatchId;
+
     public Expense() {
     }
 
@@ -89,5 +92,13 @@ public class Expense {
 
     public void setPaymentMethod(String paymentMethod) {
         this.paymentMethod = paymentMethod;
+    }
+
+    public Long getImportBatchId() {
+        return importBatchId;
+    }
+
+    public void setImportBatchId(Long importBatchId) {
+        this.importBatchId = importBatchId;
     }
 }

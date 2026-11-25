@@ -1,0 +1,18 @@
+# Valori per Docker e test. Una application.properties locale (ignorata da git)
+# ha la precedenza su questi valori.
+spring:
+  application:
+    name: expense-tracker-backend
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/expense_tracker}
+    username: ${DB_USER:expense}
+    password: ${DB_PASSWORD:expense}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    # Un database creato in passato da Hibernate (ddl-auto) corrisponde a V1:
+    # viene registrato come gia' a quella versione e riceve solo le migrazioni successive.
+    baseline-on-migrate: true
+    baseline-version: 1

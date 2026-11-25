@@ -9,6 +9,8 @@ public class ExpenseImportResponseDTO {
     private int importedCount;
     private int alreadyImportedCount;
     private List<ExpenseResponseDTO> importedExpenses;
+    private List<String> skippedExternalIds = List.of();
+    private ImportBatchDTO batch;
 
     public ExpenseImportResponseDTO() {
     }
@@ -39,5 +41,21 @@ public class ExpenseImportResponseDTO {
 
     public List<ExpenseResponseDTO> getImportedExpenses() {
         return importedExpenses;
+    }
+
+    public List<String> getSkippedExternalIds() {
+        return skippedExternalIds;
+    }
+
+    public ImportBatchDTO getBatch() {
+        return batch;
+    }
+
+    public void setSkippedExternalIds(List<String> skippedExternalIds) {
+        this.skippedExternalIds = skippedExternalIds;
+    }
+
+    public void setBatch(ImportBatchDTO batch) {
+        this.batch = batch;
     }
 }
