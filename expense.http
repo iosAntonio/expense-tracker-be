@@ -1,0 +1,69 @@
+
+### Crea una nuova spesa
+POST http://localhost:8080/api/expenses
+Content-Type: application/json
+
+{
+  "date": "2026-11-12",
+  "description": "Cena",
+  "amount": 25.00,
+  "paymentMethod": "Carta",
+  "category": "PIZZA"
+}
+
+### Recupera tutte le spese
+GET http://localhost:8080/api/expenses
+Accept: application/json
+
+
+### Importazione multipla
+POST http://localhost:8080/api/expenses/import
+Content-Type: application/json
+
+[]
+### Create expense - valid
+POST http://localhost:8080/api/expenses
+Content-Type: application/json
+
+{
+  "date": "2026-11-12",
+  "description": "Pranzo",
+  "amount": 15.50,
+  "category": "BAR_RISTORAZIONE",
+  "paymentMethod": "Carta"
+}
+
+### Create expense - missing category
+POST http://localhost:8080/api/expenses
+Content-Type: application/json
+
+{
+  "date": "2026-11-12",
+  "description": "Cena",
+  "amount": 25.00,
+  "paymentMethod": "Carta"
+}
+
+### Create expense - negative amount
+POST http://localhost:8080/api/expenses
+Content-Type: application/json
+
+{
+  "date": "2026-11-12",
+  "description": "Test importo negativo",
+  "amount": 10.50,
+  "category": "ALIMENTARI",
+  "paymentMethod": "Carta"
+}
+
+### Create expense - optional description
+POST http://localhost:8080/api/expenses
+Content-Type: application/json
+
+{
+  "date": "2026-11-12",
+  "amount": 8.50,
+  "category": "ALIMENTARI",
+  "paymentMethod": "Carta"
+}
+
